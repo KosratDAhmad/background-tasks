@@ -14,6 +14,10 @@ import android.support.v4.content.ContextCompat;
 
 import com.example.android.background.MainActivity;
 import com.example.android.background.R;
+import com.example.android.background.sync.WaterReminderIntentService;
+
+import static com.example.android.background.sync.ReminderTasks.ACTION_DISMISS_NOTIFICATION;
+import static com.example.android.background.sync.ReminderTasks.ACTION_INCREMENT_WATER_COUNT;
 
 /**
  * Utility class for creating hydration notifications
@@ -22,6 +26,15 @@ public class NotificationUtils {
 
     private static final int WATER_REMINDER_PENDING_INTENT_ID = 3417;
     private static final int WATER_REMINDER_NOTIFICATION_ID = 1138;
+    private static final int ACTION_IGNORE_PENDING_INTENT_ID = 1122;
+    private static final int ACTION_DRINK_PENDING_INTENT_ID = 1133;
+
+    public static void clearAllNotifications(Context context) {
+
+        NotificationManager notificationManager = (NotificationManager)
+                context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
+    }
 
     // This method will create a notification for charging. It might be helpful
     // to take a look at this guide to see an example of what the code in this method will look like:
@@ -47,10 +60,12 @@ public class NotificationUtils {
                         context.getString(R.string.charging_reminder_notification_body)))
                 .setDefaults(Notification.DEFAULT_VIBRATE)
                 .setContentIntent(contentIntent(context))
+                .addAction(drinkReminderAction(context))
+                .addAction(ignoreReminderAction(context))
                 .setAutoCancel(true);
 
         // to PRIORITY_HIGH.
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             notificationBuilder.setPriority(Notification.PRIORITY_HIGH);
         }
 
@@ -58,6 +73,40 @@ public class NotificationUtils {
         NotificationManager notificationManager = (NotificationManager)
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(WATER_REMINDER_NOTIFICATION_ID, notificationBuilder.build());
+    }
+
+    private static NotificationCompat.Action ignoreReminderAction(Context context) {
+
+        Intent ignoreReminderIntent = new Intent(context, WaterReminderIntentService.class);
+        ignoreReminderIntent.setAction(ACTION_DISMISS_NOTIFICATION);
+
+        PendingIntent ignoreReminderPendingIntent = PendingIntent.getService(
+                context,
+                ACTION_IGNORE_PENDING_INTENT_ID,
+                ignoreReminderIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Action ignoreReminderAction = new NotificationCompat.Action(R.drawable.ic_cancel_black_24px,
+                "No, thanks.",
+                ignoreReminderPendingIntent);
+        return ignoreReminderAction;
+    }
+
+    private static NotificationCompat.Action drinkReminderAction(Context context) {
+
+        Intent drinkReminderIntent = new Intent(context, WaterReminderIntentService.class);
+        drinkReminderIntent.setAction(ACTION_INCREMENT_WATER_COUNT);
+
+        PendingIntent drinkReminderPendingIntent = PendingIntent.getService(
+                context,
+                ACTION_DRINK_PENDING_INTENT_ID,
+                drinkReminderIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Action drinkReminderAction = new NotificationCompat.Action(R.drawable.ic_local_drink_black_24px,
+                "I did it.",
+                drinkReminderPendingIntent);
+        return drinkReminderAction;
     }
 
     // should return a PendingIntent. This method will create the pending intent which will trigger when
